@@ -1,33 +1,38 @@
 #! /usr/bin/env python
-
 import rospy
+import time         # for regular Python timing
+import actionlib    # for actions!
+from rico_actions.msg import \
+        TimerAction, TimerGoal, TimerResult, TimerFeedback
 
-import time
-import actionlib
-from rico_actions.msg import TimerAction, TimerGoal
+def the_feedback_cb(feedback): # feedback callback function
+    print('[Feedback] Time elapsed: %f' % 
+    	(feedback.time_elapsed.to_sec()))
+    print('[Feedback] Time remaining: %f' % 
+    	(feedback.time_remaining.to_sec()))
 
-
-def feedback_cb(feedback):
-    print('[Feedback] Time elapsed: %f' % (feedback.time_elapsed.to_sec()))
-    print('[Feedback] Time remaining: %f' % (feedback.time_remaining.to_sec()))
-
-
-rospy.init_node('timer_action_client')
-client = actionlib.SimpleActionClient('timer', TimerAction)
-client.wait_for_server()
-goal = TimerGoal()
-goal.time_to_wait = rospy.Duration.from_sec(5.0)
+rospy.init_node('timer_action_client') # initialize node
+client = actionlib.SimpleActionClient( # register client
+    'timer',        # action server name
+    TimerAction 	# action Action message
+)
+client.wait_for_server()    # wait for action server
+goal = TimerGoal()         	# create goal object
+goal.time_to_wait = rospy.Duration.from_sec(5.0) # set field
 # Uncomment this line to test server-side abort:
-#goal.time_to_wait = rospy.Duration.from_sec(500.0)
+# goal.time_to_wait = rospy.Duration.from_sec(500.0)
 
-client.send_goal(goal, feedback_cb=feedback_cb)
+client.send_goal(goal, feedback_cb=the_feedback_cb ) # send goal
 # Uncomment these lines to test goal preemption:
-#time.sleep(3.0)
-#client.cancel_goal()
+# time.sleep(3.0)
+# client.cancel_goal()
 
-client.wait_for_result()
+client.wait_for_result() # wait for action server to finish
+# print results:
 print('[Result] State: %d' % (client.get_state()))
 print('[Result] Status: %s' % (client.get_goal_status_text()))
-print('[Result] Time elapsed: %f' %
-      (client.get_result().time_elapsed.to_sec()))
-print('[Result] Updates sent: %d' % (client.get_result().updates_sent))
+if client.get_result():
+    print('[Result] Time elapsed: %f' %
+        (client.get_result().time_elapsed.to_sec()))
+    print('[Result] Updates sent: %d' % 
+        (client.get_result().updates_sent))
